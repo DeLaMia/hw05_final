@@ -162,5 +162,3 @@ class PostFormTests(TestCase):
         self.assertEqual(Comment.objects.count(), comment_count + 1)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertEqual(last_comment.text, form_data['text'])
-
-
