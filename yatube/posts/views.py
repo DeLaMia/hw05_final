@@ -60,9 +60,8 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
-    form = PostForm()
+    form = PostForm(request.POST, files=request.FILES or None)
     if request.method == 'POST':
-        form = PostForm(request.POST, files=request.FILES or None)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
