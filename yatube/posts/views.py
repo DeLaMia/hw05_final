@@ -32,10 +32,9 @@ def profile(request, username):
     post_list = author.posts.all()
     page_obj = paginator_create(request, post_list)
     post_count = post_list.count()
-    following = False
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user, author=author).exists()
+    following = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user, author=author
+    ).exists()
     context = {
         'author': author,
         'post_count': post_count,
@@ -61,6 +60,7 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
+    form = PostForm()
     if request.method == 'POST':
         form = PostForm(request.POST, files=request.FILES or None)
         if form.is_valid():
@@ -68,8 +68,6 @@ def post_create(request):
             post.author = request.user
             form.save()
             return redirect('posts:profile', request.user.username)
-        return render(request, 'posts/post_create.html', {'form': form})
-    form = PostForm()
     return render(request, 'posts/post_create.html', {'form': form})
 
 
@@ -80,10 +78,9 @@ def post_edit(request, post_id):
                     files=request.FILES or None, instance=post)
     if post.author != request.user:
         return redirect('posts:post_detail', post_id)
-    if request.method == "POST":
-        if form.is_valid:
-            form.save()
-            return redirect('posts:post_detail', post_id)
+    if form.is_valid():
+        form.save()
+        return redirect('posts:post_detail', post_id)
     context = {'form': form, 'is_edit': True, 'post': post}
     return render(request, 'posts/post_create.html', context)
 
@@ -102,8 +99,7 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    following = request.user.follower.values_list('author', flat=True)
-    post_list = Post.objects.filter(author__id__in=following)
+    post_list = Post.objects.filter(author__following__user=request.user)
     page_obj = paginator_create(request, post_list)
     context = {
         'page_obj': page_obj,
@@ -116,9 +112,7 @@ def follow_index(request):
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
     if request.user != author:
-        if not Follow.objects.filter(user=request.user,
-                                     author__username=username).exists():
-            Follow.objects.create(user=request.user, author=author)
+        Follow.objects.get_or_create(user=request.user, author=author)
     return redirect('posts:profile', request.user.username)
 
 

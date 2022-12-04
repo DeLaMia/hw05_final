@@ -48,17 +48,21 @@ class PostVievsTests(TestCase):
             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
             b'\x0A\x00\x3B'
         )
-        uploaded = SimpleUploadedFile(
+        cls.uploaded = SimpleUploadedFile(
             name='small.gif',
             content=small_gif,
             content_type='image/gif'
         )
-        for i in range(13):
-            cls.post = Post.objects.create(
+        posts: list = []
+        for i in range(1, 14):
+            cls.post = Post(
+                id=Post.objects.latest('id').id + i,
                 author=cls.user,
                 text='test-post-text',
                 group=cls.group,
-                image=uploaded)
+                image=cls.uploaded)
+            posts.append(cls.post)
+        Post.objects.bulk_create(posts)
 
     @classmethod
     def tearDownClass(cls):
@@ -72,12 +76,14 @@ class PostVievsTests(TestCase):
         self.another_client.force_login(self.user_another)
 
     def post_test(self, response):
+        """Тест поста"""
         post_object = response.context['page_obj'][0]
         self.assertEqual(post_object.author.username, self.user.username)
         self.assertEqual(post_object.text, self.post.text)
         self.assertEqual(post_object.image, self.post.image)
 
     def post_card_test(self, response):
+        """Тест поста на странице post_detail"""
         post_object = response.context['post']
         self.assertEqual(post_object.author.username, self.user.username)
         self.assertEqual(post_object.text, self.post.text)
